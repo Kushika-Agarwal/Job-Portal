@@ -19,13 +19,17 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 const corsOption = {
-  origin: "https://job-portal-3xp1.onrender.com",
+  origin: [
+    "https://job-portal-3xp1.onrender.com", // Render
+    "https://job-portal-frontend-nu.vercel.app", // Vercel frontend
+    "http://localhost:5173", // Vite dev
+  ],
   credentials: true,
 };
 
 app.use(cors(corsOption));
 
-const port = process.env.port || 3000;
+const port = process.env.PORT || 3000;
 
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/company", companyRoute);

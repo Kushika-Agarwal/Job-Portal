@@ -15,8 +15,11 @@ export const register = async (req, res) => {
       });
     }
     const file = req.file;
-    const fileUri = getDataUri(file);
-    const cloudResponse = await cloudinary.uploader.upload(fileUri.content);
+    let cloudResponse = null;
+    if (file) {
+      const fileUri = getDataUri(file);
+      cloudResponse = await cloudinary.uploader.upload(fileUri.content);
+    }
 
     const user = await User.findOne({ email });
     if (user) {
@@ -34,9 +37,9 @@ export const register = async (req, res) => {
       phoneNumber,
       password: hashedPassword,
       role,
-      profile: {
-        profilePhoto: cloudResponse.secure_url,
-      },
+      profile: cloudResponse
+        ? { profilePhoto: cloudResponse.secure_url }
+        : {},
     });
     return res.status(201).json({
       message: "Account created succesfully",
@@ -66,22 +69,16 @@ export const login = async (req, res) => {
 
     const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
-      return (
-        res.status(400),
-        json({
-          message: "Incorrect email or password",
-          success: false,
-        })
-      );
+      return res.status(400).json({
+        message: "Incorrect email or password",
+        success: false,
+      });
     }
     if (role !== user.role) {
-      return (
-        res.status(400),
-        json({
-          message: "Account doesn't exist with current role",
-          success: false,
-        })
-      );
+      return res.status(400).json({
+        message: "Account doesn't exist with current role",
+        success: false,
+      });
     }
 
     const tokenData = {
@@ -103,8 +100,9 @@ export const login = async (req, res) => {
       .status(200)
       .cookie("token", token, {
         maxAge: 1 * 24 * 60 * 60 * 1000,
-        httpsOnly: true,
-        sameSite: "strict",
+        httpOnly: true,
+        sameSite: "none",
+        secure: true,
       })
       .json({
         message: `Welcome Back ${user.fullname}`,
